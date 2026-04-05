@@ -6,7 +6,7 @@ A web-based visual novel.
 ## Features - Cozy vibe atomsphere. 
 
 ## Live Demo 
-[Try it here!](https://zhihong141.github.io/-AsciiArt-Converter-Revamped/) 
+[Try it here!]([https://zhihong141.github.io/Visual-Novel_New-Student/) 
 
 ## How to Run Locally 
 1. Clone this repository. 
