@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Koshi & Yohji — 1-Week Visual Novel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,17 +42,32 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
+    html {
+      height: 100%;
+      height: -webkit-fill-available;
+    }
     body {
       font-family: var(--font-body);
       color: var(--p-text);
       background: #e8d8f0;
       overflow: hidden;
       user-select: none;
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
     }
 
-    /* ── GAME CONTAINER ── */
-    #game { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    /* ── GAME CONTAINER — dvh excludes the Android Chrome browser bar ── */
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left:   env(safe-area-inset-left,   0px);
+      padding-right:  env(safe-area-inset-right,  0px);
+    }
 
     /* ── BACKGROUND ── */
     #bg {
@@ -224,6 +241,8 @@
     #dialogueWrap {
       position: absolute; left: 0; right: 0; bottom: 0;
       padding: 10px 14px 16px;
+      /* Extra bottom breathing room for Android nav bar / iOS home swipe bar */
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
       z-index: 40;
     }
     #dialogue {
@@ -487,10 +506,10 @@
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ══════════════════════════════════════
-       RESPONSIVE
+       RESPONSIVE — PORTRAIT MOBILE
     ══════════════════════════════════════ */
-    @media (max-width: 720px) {
-      #text { font-size: 15px; min-height: 72px; }
+    @media (max-width: 720px) and (orientation: portrait) {
+      #text { font-size: 15px; min-height: 64px; }
       .stat  { min-width: 84px; }
       button.ui { padding: 0 9px; font-size: 10px; height: 27px; }
       .char  { display: none; }
@@ -498,6 +517,123 @@
       #loc   { min-width: 120px; }
       #controls { flex-wrap: wrap; }
       #modalBox { padding: 22px 18px 18px; }
+    }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE — LANDSCAPE PHONE
+       Targets phones in landscape (height < 500px)
+    ══════════════════════════════════════ */
+    @media (max-height: 500px) and (orientation: landscape) {
+
+      /* Kill character art — no vertical room */
+      .char { display: none; }
+      #petals .sparkle { display: none; }
+
+      /* ── HUD: single slim strip ── */
+      #hud {
+        top: 6px; left: 6px; right: 6px;
+        gap: 5px;
+        flex-wrap: nowrap;
+        align-items: center;
+      }
+      .hudCard {
+        padding: 5px 10px;
+        border-radius: 12px;
+        gap: 6px;
+      }
+      .hudCard::before { display: none; } /* skip shimmer line */
+
+      /* Location: shrink */
+      #loc { min-width: 0; flex: 0 1 auto; max-width: 130px; }
+      #locDot { width: 7px; height: 7px; }
+      #locText { font-size: 10px; }
+
+      /* Stats: horizontal compact — all 3 in a row */
+      #stats { gap: 8px; flex-wrap: nowrap; }
+      .stat { min-width: 0; flex: 1; gap: 2px; }
+      .statLabel { font-size: 9px; letter-spacing: .05em; gap: 2px; }
+      .statEmoji { display: none; }
+      .bar { height: 5px; }
+
+      /* Controls: all buttons in one tight row */
+      #controls {
+        gap: 4px;
+        flex-wrap: nowrap;
+        margin-left: auto;
+      }
+      button.ui {
+        height: 24px;
+        padding: 0 9px;
+        font-size: 10px;
+        border-radius: 99px;
+        border-width: 1px;
+      }
+
+      /* ── Dialogue: compact, leaves room for story ── */
+      #dialogueWrap {
+        padding: 5px 8px 8px;
+      }
+      #dialogue {
+        padding: 8px 12px 10px;
+        border-radius: 14px;
+        border-width: 1px;
+      }
+      #dialogue::after { display: none; } /* hide flower decoration */
+
+      #nameplate {
+        padding: 3px 10px 3px 8px;
+        gap: 5px;
+      }
+      #nameDot { width: 5px; height: 5px; }
+      #speaker { font-size: 11px; }
+
+      #meta { top: 8px; right: 10px; gap: 5px; font-size: 9px; }
+      #hint { padding: 2px 8px; }
+      #sfxLabel { padding: 2px 8px; max-width: 160px; }
+
+      #text {
+        margin-top: 6px;
+        font-size: 13px;
+        line-height: 1.55;
+        min-height: 0;       /* let it shrink naturally */
+      }
+
+      /* Choices: smaller, less padding */
+      #choices { margin-top: 6px; gap: 5px; }
+      .choiceBtn {
+        padding: 7px 12px 7px 30px;
+        font-size: 12px;
+        border-radius: 10px;
+        border-width: 1px;
+      }
+      .choiceBtn::before { font-size: 10px; left: 9px; }
+      .choiceMeta { font-size: 9px; margin-top: 2px; }
+
+      /* Log panel: fit between HUD and dialogue */
+      #logPanel {
+        inset: 44px 8px 110px 8px;
+        border-radius: 14px;
+      }
+      #logHeader { padding: 7px 12px; font-size: 11px; }
+      #logBody { padding: 8px 12px; font-size: 12px; line-height: 1.45; }
+
+      /* Modal: compact */
+      #modalBox {
+        padding: 18px 18px 14px;
+        gap: 12px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      #modalTitle { font-size: 14px; }
+      .modal-icon { font-size: 16px; }
+      #modalDesc { font-size: 12px; }
+      .slotBtn { padding: 9px 12px; }
+      .slotName { font-size: 12px; }
+      .slotDate { font-size: 10px; }
+      .modalBtn { padding: 7px 16px; font-size: 11px; }
+
+      /* Toast: lift it above the dialogue */
+      #toast { bottom: 120px; font-size: 11px; padding: 6px 16px; }
     }
   </style>
 </head>
