@@ -1,0 +1,1859 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Koshi & Yohji — 1-Week Visual Novel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ════════════════════════════════════════
+       PASTEL COZY PALETTE
+    ════════════════════════════════════════ */
+    :root {
+      --p-sky:        #c8e6f5;   /* soft sky blue  */
+      --p-blush:      #f5c8d8;   /* cherry blossom */
+      --p-mint:       #c8f0e0;   /* fresh mint     */
+      --p-lemon:      #f5f0c0;   /* warm lemon     */
+      --p-lavender:   #e0d0f5;   /* dreamy purple  */
+      --p-peach:      #f5dfc8;   /* soft peach     */
+      --p-rose:       #e8a0b8;   /* muted rose     */
+      --p-sky-mid:    #90c8e8;
+      --p-text:       #4a3f5c;   /* soft indigo ink */
+      --p-text-soft:  #7a6e8a;
+      --p-text-dim:   #a89eb8;
+
+      /* Card surfaces */
+      --card-bg:      rgba(255,248,252,.82);
+      --card-border:  rgba(220,180,210,.45);
+      --card-shadow:  0 4px 20px rgba(150,110,160,.12), 0 1px 4px rgba(150,110,160,.08);
+      --card-shadow-lg: 0 12px 40px rgba(150,110,160,.18), 0 2px 8px rgba(150,110,160,.10);
+
+      /* Dialogue */
+      --dlg-bg:       rgba(255,248,252,.90);
+      --dlg-border:   rgba(220,180,210,.50);
+
+      --radius:       22px;
+      --radius-sm:    14px;
+      --font-head:    'Quicksand', 'Segoe UI', sans-serif;
+      --font-body:    'Nunito', 'Segoe UI', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font-body);
+      color: var(--p-text);
+      background: #e8d8f0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── GAME CONTAINER ── */
+    #game { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+    /* ── BACKGROUND ── */
+    #bg {
+      position: absolute; inset: 0;
+      transition: background 900ms ease;
+    }
+
+    /* soft vignette overlay */
+    #bg::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(220,200,240,.25) 100%);
+      pointer-events: none;
+    }
+
+    /* ── FLOATING SPARKLES / PETALS ── */
+    #petals { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+    .petal {
+      position: absolute;
+      opacity: 0;
+      animation: petalFall linear infinite;
+      border-radius: 50% 10% 50% 10%;
+    }
+    @keyframes petalFall {
+      0%   { transform: translate(0, -30px) rotate(0deg) scale(.8); opacity: 0; }
+      8%   { opacity: .7; }
+      85%  { opacity: .5; }
+      100% { transform: translate(var(--drift), 108vh) rotate(var(--spin)) scale(1); opacity: 0; }
+    }
+
+    /* little floating stars */
+    .sparkle {
+      position: absolute;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      opacity: 0;
+      animation: sparklePop ease-in-out infinite;
+    }
+    @keyframes sparklePop {
+      0%, 100% { transform: scale(0); opacity: 0; }
+      50%       { transform: scale(1); opacity: .65; }
+    }
+
+    /* ── CHARACTER SILHOUETTES ── */
+    .char {
+      position: absolute; bottom: 155px;
+      width: min(28vw, 340px); height: min(62vh, 660px);
+      opacity: 0; pointer-events: none;
+      transition: opacity 600ms ease;
+    }
+    .char.visible { opacity: .20; }
+    #charL { left: 1.5vw; }
+    #charR { right: 1.5vw; transform: scaleX(-1); }
+    .char::before {
+      content: ""; position: absolute; inset: 0;
+      border-radius: 100px 100px 30px 30px;
+      background: radial-gradient(ellipse at 50% 12%, rgba(180,140,200,.40), rgba(200,160,210,.15) 50%, transparent 72%);
+    }
+    .char::after {
+      content: ""; position: absolute; left: 20%; right: 20%; bottom: 4%; height: 26%;
+      border-radius: 20px;
+      background: linear-gradient(to top, rgba(200,160,210,.18), transparent);
+    }
+    .charLabel {
+      position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-head); font-size: 10px; font-weight: 600;
+      color: var(--p-rose); letter-spacing: .08em; text-transform: uppercase;
+      opacity: .7; white-space: nowrap;
+    }
+
+    /* ══════════════════════════════════════
+       HUD — TOP BAR
+    ══════════════════════════════════════ */
+    #hud {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      display: flex; gap: 8px; align-items: stretch; z-index: 30;
+    }
+
+    .hudCard {
+      position: relative;
+      background: var(--card-bg);
+      backdrop-filter: blur(18px) saturate(1.6);
+      border: 1.5px solid var(--card-border);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+      min-height: 0;
+    }
+    .hudCard::before {
+      content: "";
+      position: absolute; top: 0; left: 12px; right: 12px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.80), transparent);
+      border-radius: 99px;
+    }
+
+    /* Location pill */
+    #loc { flex: 1; min-width: 190px; gap: 9px; }
+    #locDot {
+      width: 9px; height: 9px; border-radius: 50%; flex: none;
+      background: linear-gradient(135deg, var(--p-rose), var(--p-lavender));
+      box-shadow: 0 0 0 3px rgba(232,160,184,.25), 0 0 10px rgba(232,160,184,.35);
+    }
+    #locText {
+      font-family: var(--font-head); font-weight: 600; font-size: 12px;
+      color: var(--p-text-soft);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Stat bars */
+    #stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; gap: 4px; min-width: 96px; }
+    .statLabel {
+      font-family: var(--font-head); font-size: 10px; font-weight: 700;
+      letter-spacing: .09em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 4px;
+      color: var(--p-text-dim);
+    }
+    .statEmoji { font-size: 10px; }
+    .bar {
+      height: 7px; border-radius: 99px;
+      background: rgba(150,110,160,.10);
+      overflow: hidden;
+      border: 1px solid rgba(200,160,210,.20);
+    }
+    .fill {
+      height: 100%; width: 0%;
+      border-radius: 99px;
+      transition: width 400ms cubic-bezier(.34, 1.56, .64, 1);
+    }
+    #trustFill  { background: linear-gradient(90deg, #e8a0c0, #c878a8); }
+    #warmthFill { background: linear-gradient(90deg, #f0c060, #e8a040); }
+    #balanceFill{ background: linear-gradient(90deg, #80d0c0, #50b8a8); }
+
+    /* Controls */
+    #controls { margin-left: auto; display: flex; gap: 5px; flex-wrap: nowrap; align-items: center; }
+
+    button.ui {
+      background: linear-gradient(160deg, rgba(255,248,255,.80), rgba(240,228,250,.70));
+      color: var(--p-text-soft);
+      border: 1.5px solid rgba(210,175,225,.50);
+      border-radius: 99px;
+      padding: 0 13px;
+      height: 30px;
+      font-family: var(--font-head); font-size: 11px; font-weight: 700;
+      letter-spacing: .03em;
+      cursor: pointer;
+      display: flex; align-items: center;
+      transition: all 160ms ease;
+      box-shadow: 0 1px 3px rgba(150,110,160,.10), inset 0 1px 0 rgba(255,255,255,.70);
+      white-space: nowrap;
+    }
+    button.ui:hover {
+      background: linear-gradient(160deg, rgba(255,248,255,.98), rgba(240,228,250,.90));
+      border-color: rgba(210,175,225,.80);
+      color: var(--p-text);
+      box-shadow: 0 3px 10px rgba(150,110,160,.18), inset 0 1px 0 rgba(255,255,255,.80);
+      transform: translateY(-1px);
+    }
+    button.ui:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(150,110,160,.10); }
+    button.ui[aria-pressed="true"] {
+      background: linear-gradient(135deg, rgba(232,160,184,.35), rgba(200,160,230,.30));
+      border-color: rgba(210,140,190,.60);
+      color: var(--p-text);
+      box-shadow: inset 0 1px 4px rgba(180,120,160,.15);
+    }
+
+    /* ══════════════════════════════════════
+       DIALOGUE BOX
+    ══════════════════════════════════════ */
+    #dialogueWrap {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 10px 14px 16px;
+      z-index: 40;
+    }
+    #dialogue {
+      max-width: 1060px; margin: 0 auto;
+      background: var(--dlg-bg);
+      backdrop-filter: blur(20px) saturate(1.5);
+      border: 1.5px solid var(--dlg-border);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--card-shadow-lg), inset 0 1.5px 0 rgba(255,255,255,.75);
+      padding: 14px 18px 16px;
+      position: relative;
+    }
+    /* top shimmer line */
+    #dialogue::before {
+      content: "";
+      position: absolute; top: 0; left: 20px; right: 20px; height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.90), transparent);
+      border-radius: 99px;
+    }
+    /* decorative bottom-right flower */
+    #dialogue::after {
+      content: "✿";
+      position: absolute; right: 16px; bottom: 12px;
+      font-size: 16px; color: rgba(220,160,190,.30);
+      pointer-events: none;
+    }
+
+    /* Speaker nameplate */
+    #nameplate {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 14px 5px 10px;
+      border-radius: 99px;
+      background: linear-gradient(135deg, rgba(248,224,235,.90), rgba(232,200,248,.70));
+      border: 1.5px solid rgba(220,170,200,.50);
+      box-shadow: 0 2px 8px rgba(180,130,180,.14), inset 0 1px 0 rgba(255,255,255,.70);
+    }
+    #nameDot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: linear-gradient(135deg, #e898b8, #c878d8);
+      box-shadow: 0 0 6px rgba(220,140,200,.50);
+      flex: none;
+    }
+    #speaker {
+      font-family: var(--font-head); font-weight: 700; font-size: 13px;
+      color: var(--p-text); letter-spacing: .02em;
+    }
+
+    #meta {
+      position: absolute; right: 16px; top: 14px;
+      display: flex; gap: 7px; align-items: center;
+      font-family: var(--font-head); font-size: 10px; font-weight: 600;
+      color: var(--p-text-dim);
+    }
+    #sfxLabel {
+      padding: 4px 10px; border-radius: 99px;
+      border: 1.5px solid rgba(200,200,240,.40);
+      background: rgba(220,210,240,.20);
+      max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      display: none; font-style: italic;
+    }
+    #hint {
+      padding: 4px 10px; border-radius: 99px;
+      border: 1.5px solid rgba(200,200,240,.40);
+      background: rgba(220,210,240,.20);
+      letter-spacing: .04em;
+    }
+
+    /* Dialogue text */
+    #text {
+      margin-top: 10px;
+      font-family: var(--font-body); font-size: 16.5px; line-height: 1.72;
+      color: var(--p-text); min-height: 80px; white-space: pre-wrap;
+      font-weight: 400;
+    }
+    #tapCatcher {
+      position: absolute; inset: 0;
+      border-radius: calc(var(--radius) + 4px);
+      cursor: pointer; z-index: 1;
+    }
+
+    /* ── CHOICE BUTTONS ── */
+    #choices { margin-top: 12px; display: none; gap: 8px; flex-direction: column; position: relative; z-index: 5; }
+    .choiceBtn {
+      text-align: left;
+      -webkit-appearance: none; appearance: none;
+      font-family: var(--font-body); font-size: 14px; font-weight: 500;
+      color: var(--p-text);
+      background: linear-gradient(135deg, rgba(255,248,252,.80), rgba(240,224,252,.60));
+      border: 1.5px solid rgba(210,175,225,.45);
+      border-radius: var(--radius-sm);
+      padding: 11px 16px 11px 38px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(150,110,160,.08), inset 0 1px 0 rgba(255,255,255,.65);
+      transition: all 160ms ease;
+      position: relative;
+    }
+    .choiceBtn::before {
+      content: "🌸";
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 13px; opacity: .45;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .choiceBtn:hover {
+      background: linear-gradient(135deg, rgba(255,248,252,.98), rgba(240,224,252,.90));
+      border-color: rgba(220,160,200,.70);
+      box-shadow: 0 4px 16px rgba(180,120,180,.16), inset 0 1px 0 rgba(255,255,255,.80);
+      transform: translateY(-1px);
+      color: #3a2e50;
+    }
+    .choiceBtn:hover::before { opacity: .90; transform: translateY(-50%) scale(1.15); }
+    .choiceBtn:active { transform: translateY(0); }
+    .choiceMeta {
+      font-family: var(--font-head); font-size: 10px; font-weight: 600;
+      color: var(--p-text-dim); margin-top: 4px; font-style: italic;
+    }
+
+    /* ══════════════════════════════════════
+       LOG PANEL
+    ══════════════════════════════════════ */
+    #logPanel {
+      position: absolute; inset: 70px 12px 155px 12px;
+      z-index: 60; display: none;
+      max-width: 1060px; margin: 0 auto;
+      background: rgba(252,246,255,.92);
+      backdrop-filter: blur(20px) saturate(1.5);
+      border: 1.5px solid rgba(210,175,225,.50);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: var(--card-shadow-lg);
+      overflow: hidden;
+    }
+    #logHeader {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1.5px solid rgba(210,175,225,.25);
+      font-family: var(--font-head); font-size: 13px; font-weight: 700;
+      color: var(--p-text-soft);
+    }
+    #logHeaderTitle { display: flex; align-items: center; gap: 7px; }
+    #logBody {
+      padding: 14px 18px;
+      height: calc(100% - 50px); overflow: auto;
+      font-family: var(--font-body); font-size: 14px; line-height: 1.60;
+      color: var(--p-text); white-space: pre-wrap;
+    }
+    #logBody::-webkit-scrollbar { width: 5px; }
+    #logBody::-webkit-scrollbar-track { background: rgba(200,180,220,.08); }
+    #logBody::-webkit-scrollbar-thumb { background: rgba(200,160,210,.35); border-radius: 99px; }
+    .logLine { margin-bottom: 10px; }
+    .logSpeaker { font-family: var(--font-head); font-weight: 700; font-size: 12px; color: var(--p-rose); margin-right: 6px; }
+
+    /* ══════════════════════════════════════
+       CUSTOM MODAL (replaces browser prompt/confirm)
+    ══════════════════════════════════════ */
+    #modalOverlay {
+      position: absolute; inset: 0;
+      background: rgba(180,150,210,.22);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    #modalOverlay.open { display: flex; animation: modalFadeIn 200ms ease; }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    #modalBox {
+      background: linear-gradient(160deg, rgba(255,250,255,.97), rgba(248,236,255,.95));
+      border: 2px solid rgba(220,180,230,.55);
+      border-radius: calc(var(--radius) + 2px);
+      box-shadow: 0 20px 60px rgba(150,100,180,.22), 0 4px 16px rgba(150,100,180,.12),
+                  inset 0 2px 0 rgba(255,255,255,.85);
+      padding: 28px 28px 22px;
+      width: min(380px, 90vw);
+      display: flex; flex-direction: column; gap: 18px;
+      position: relative;
+    }
+    #modalBox::before {
+      content: "";
+      position: absolute; top: 0; left: 16px; right: 16px; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.90), transparent);
+      border-radius: 99px;
+    }
+    #modalTitle {
+      font-family: var(--font-head); font-size: 16px; font-weight: 700;
+      color: var(--p-text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    #modalTitle .modal-icon { font-size: 20px; }
+    #modalDesc {
+      font-family: var(--font-body); font-size: 13px; color: var(--p-text-soft);
+      line-height: 1.5; margin-top: -6px;
+    }
+    /* Save slot grid */
+    #modalSlots { display: flex; flex-direction: column; gap: 8px; }
+    .slotBtn {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid rgba(210,175,225,.40);
+      background: linear-gradient(135deg, rgba(255,248,252,.80), rgba(240,224,252,.55));
+      cursor: pointer;
+      transition: all 160ms ease;
+      font-family: var(--font-body);
+      box-shadow: 0 1px 4px rgba(150,110,160,.07), inset 0 1px 0 rgba(255,255,255,.65);
+    }
+    .slotBtn:hover {
+      background: linear-gradient(135deg, rgba(255,248,252,.98), rgba(240,224,252,.88));
+      border-color: rgba(220,160,200,.65);
+      transform: translateX(3px);
+      box-shadow: 0 3px 12px rgba(180,120,180,.14);
+    }
+    .slotBtn:active { transform: translateX(0); }
+    .slotIcon { font-size: 18px; flex: none; }
+    .slotInfo { flex: 1; text-align: left; }
+    .slotName { font-size: 13px; font-weight: 700; color: var(--p-text); }
+    .slotDate { font-size: 11px; color: var(--p-text-dim); margin-top: 2px; }
+    /* Confirm modal buttons */
+    #modalBtns { display: flex; gap: 8px; justify-content: flex-end; }
+    .modalBtn {
+      padding: 9px 20px; border-radius: var(--radius-sm);
+      font-family: var(--font-head); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 160ms ease; border: 1.5px solid;
+      letter-spacing: .03em;
+    }
+    .modalBtn.cancel {
+      background: rgba(240,230,250,.70); color: var(--p-text-soft);
+      border-color: rgba(200,180,220,.40);
+    }
+    .modalBtn.cancel:hover { background: rgba(240,230,250,.95); border-color: rgba(200,180,220,.70); }
+    .modalBtn.confirm {
+      background: linear-gradient(135deg, #e8a8d0, #c890e0);
+      color: #fff; border-color: rgba(200,130,200,.50);
+      box-shadow: 0 2px 8px rgba(200,130,220,.30);
+    }
+    .modalBtn.confirm:hover { background: linear-gradient(135deg, #f0b8d8, #d8a0f0); transform: translateY(-1px); }
+    .modalBtn.confirm:active { transform: translateY(0); }
+    .modalBtn.danger {
+      background: linear-gradient(135deg, #f0a8a8, #e07878);
+      color: #fff; border-color: rgba(220,100,100,.40);
+      box-shadow: 0 2px 8px rgba(220,100,100,.25);
+    }
+    .modalBtn.danger:hover { background: linear-gradient(135deg, #f8b8b8, #e89090); transform: translateY(-1px); }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%) translateY(10px);
+      background: linear-gradient(135deg, rgba(255,248,252,.96), rgba(240,224,252,.94));
+      border: 1.5px solid rgba(220,175,220,.55);
+      border-radius: 99px;
+      padding: 8px 20px;
+      font-family: var(--font-head); font-size: 12px; font-weight: 700;
+      color: var(--p-text-soft);
+      box-shadow: var(--card-shadow);
+      z-index: 80;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 300ms ease, transform 300ms ease;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════ */
+    @media (max-width: 720px) {
+      #text { font-size: 15px; min-height: 72px; }
+      .stat  { min-width: 84px; }
+      button.ui { padding: 0 9px; font-size: 10px; height: 27px; }
+      .char  { display: none; }
+      #hud   { gap: 6px; }
+      #loc   { min-width: 120px; }
+      #controls { flex-wrap: wrap; }
+      #modalBox { padding: 22px 18px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="bg"></div>
+    <div id="petals"></div>
+
+    <div id="charL" class="char"><div class="charLabel">Koshi</div></div>
+    <div id="charR" class="char"><div class="charLabel">Yohji</div></div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="loc" class="hudCard">
+        <div id="locDot"></div>
+        <div id="locText">Loading…</div>
+      </div>
+
+      <div id="stats" class="hudCard" aria-label="Stats">
+        <div class="stat">
+          <div class="statLabel"><span class="statEmoji">🌸</span> Trust</div>
+          <div class="bar"><div id="trustFill" class="fill"></div></div>
+        </div>
+        <div class="stat">
+          <div class="statLabel"><span class="statEmoji">☀️</span> Warmth</div>
+          <div class="bar"><div id="warmthFill" class="fill"></div></div>
+        </div>
+        <div class="stat">
+          <div class="statLabel"><span class="statEmoji">🍃</span> Balance</div>
+          <div class="bar"><div id="balanceFill" class="fill"></div></div>
+        </div>
+      </div>
+
+      <div id="controls" class="hudCard" aria-label="Controls">
+        <button class="ui" id="btnAuto"    aria-pressed="false">Auto</button>
+        <button class="ui" id="btnSkip"    aria-pressed="false">Skip</button>
+        <button class="ui" id="btnLog">Log</button>
+        <button class="ui" id="btnSave">Save</button>
+        <button class="ui" id="btnLoad">Load</button>
+        <button class="ui" id="btnRestart">Restart</button>
+      </div>
+    </div>
+
+    <!-- Log panel -->
+    <div id="logPanel">
+      <div id="logHeader">
+        <div id="logHeaderTitle">Story Log</div>
+        <button class="ui" id="btnCloseLog" style="height:28px; padding:0 12px;">Close</button>
+      </div>
+      <div id="logBody"></div>
+    </div>
+
+    <!-- Dialogue -->
+    <div id="dialogueWrap">
+      <div id="dialogue">
+        <div id="meta">
+          <div id="sfxLabel"></div>
+          <div id="hint">Click / Space</div>
+        </div>
+        <div id="nameplate"><div id="nameDot"></div><span id="speaker">—</span></div>
+        <div id="text"></div>
+        <div id="choices"></div>
+        <div id="tapCatcher" title="Click to continue"></div>
+      </div>
+    </div>
+
+    <!-- Custom Modal (Save / Load / Restart) -->
+    <div id="modalOverlay">
+      <div id="modalBox">
+        <div id="modalTitle"><span class="modal-icon" id="modalIcon">💾</span><span id="modalTitleText">Save Game</span></div>
+        <div id="modalDesc"></div>
+        <div id="modalSlots"></div>
+        <div id="modalBtns"></div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+  </div>
+
+  <script>
+    // ===== RAW STORY SCRIPT =====
+    const RAW_SCRIPT = String.raw`001. [DAY 1 — MONDAY]
+002. [BG: Classroom - Morning]
+003. [SFX: morning chatter]
+004. Narration: First day of high school. The air tastes like chalk and new notebooks.
+005. Narration: I’m Koshi—professional optimist, part-time slacker.
+006. Narration: And today… we got a transfer student.
+007. Sakurai-sensei: Everyone, quiet down. We have someone joining us.
+008. Narration: The door slides open.
+009. Narration: He steps in like he’s trying not to disturb the air.
+010. Sakurai-sensei: Introduce yourself, please.
+011. Yohji: ...I’m Yohji. Nice to meet you.
+012. Narration: His voice is calm. Polite. A little far away.
+013. Narration: Tokyo uniform style, but not flashy. Just… neat.
+014. Whispering Student A: He’s from Tokyo, right?
+015. Whispering Student B: He looks serious...
+016. Narration: Our class leader, Mizuki, smiles like a welcome sign.
+017. Mizuki: Welcome, Yohji-kun. If you need anything, tell me.
+018. Yohji: Thank you.
+019. Sakurai-sensei: Koshi. You’ll be his seatmate.
+020. Narration: Me? Seatmate? This is fate. Or a prank.
+021. Koshi: Huh—me? Okay!
+022. [SFX: chairs scraping]
+023. Narration: Yohji sits beside me. His bag is aligned like it has a ruler.
+024. Narration: I can’t help staring. Not in a rude way. In a curious way.
+025. Koshi: Uh… hi.
+026. Yohji: Hi.
+027. Narration: Short. Clean. Like a period at the end of a sentence.
+028. CHOICE: How do you greet Yohji?
+029. Option A (Gentle) [Warmth +1]: “If you need anything, just ask me.”
+030. Option B (Blunt)  [Warmth -1]: “So you’re from Tokyo, huh?”
+031. [If A]
+032. Koshi: If you need anything, just ask me. Even if it’s something small.
+033. Yohji: ...Thank you. I’ll remember that.
+034. [If B]
+035. Koshi: So you’re from Tokyo, huh? Must be nice.
+036. Yohji: It’s… just a place.
+037. Narration: Oops. That answer lands like a closed door.
+038. [BG: Classroom - Mid-morning]
+039. Sakurai-sensei: Open your textbooks to page twelve.
+040. Narration: I pretend to read. Yohji actually reads.
+041. Narration: His pen moves with quiet confidence.
+042. Koshi: (He’s probably thinking I’m hopeless.)
+043. Yohji: ...This line means “therefore.”
+044. Koshi: Oh. Thanks.
+045. Narration: He helps without showing off. That’s… kind.
+046. [BG: Classroom - Lunch]
+047. [SFX: bento lids opening]
+048. Narration: Lunch is the easiest time to make friends.
+049. Narration: Also the easiest time to embarrass yourself.
+050. Koshi: Yohji, wanna eat together? With us?
+051. Yohji: ...I’ll pass. Thank you.
+052. Narration: Not rude. Just firm.
+053. Mizuki: He might need time, Koshi. First days are… loud.
+054. Koshi: Right. Sorry.
+055. CHOICE: What do you do after he declines?
+056. Option A (Give space) [Trust +1]: “Okay. Next time.”
+057. Option B (Persist)    [Trust -1]: “Come on, just once.”
+058. [If A]
+059. Koshi: Okay. Next time then.
+060. Yohji: ...Maybe.
+061. [If B]
+062. Koshi: Come on, just once. We don’t bite.
+063. Yohji: ...I really will pass.
+064. Narration: The air between us gets colder by one degree.
+065. [BG: Rooftop - Sunset] (Optional if you gave space)
+066. Narration: After school, I wander upstairs for no reason.
+067. Narration: The sky is orange like someone spilled paint.
+068. Narration: Yohji is already here, hands on the railing.
+069. Koshi: Oh. You like rooftops too?
+070. Yohji: It’s quiet.
+071. Koshi: Yeah… quiet is good sometimes.
+072. Narration: We stand together without forcing words.
+073. Yohji: The clouds here look different.
+074. Koshi: You mean… countryside clouds?
+075. Yohji: ...Maybe.
+076. Narration: That almost sounds like a joke.
+077. [BG: Koshi's Room - Night]
+078. [SFX: phone buzz]
+079. Narration: I flop onto my bed and stare at the ceiling.
+080. Narration: He’s not arrogant. He’s not cold. He’s… cautious.
+081. Narration: And for some reason, that makes me want to try harder.
+082. Koshi: (Okay, Koshi. Don’t sprint. Just… walk beside him.)
+083. CHOICE: What will you prioritize tomorrow?
+084. Option A (Study) [Balance +1]: “I’ll be reliable for once.”
+085. Option B (Club)  [Balance +1]: “I’ll show up and help.”
+086. Option C (Free)  [Balance -1]: “I’ll wing it.”
+087. [DAY 2 — TUESDAY]
+088. [BG: Classroom - Morning]
+089. [SFX: bell]
+090. Narration: Yohji is already seated when I arrive.
+091. Narration: His desk is clean. Mine is… a crime scene.
+092. Koshi: Morning.
+093. Yohji: Good morning.
+094. Narration: Two words. But he says them like they matter.
+095. Koshi: Did you sleep okay?
+096. Yohji: ...Yes. You?
+097. Koshi: Perfectly. (Lie.)
+098. Narration: A worksheet lands on my desk like a punishment.
+099. Sakurai-sensei: Pair work. Solve the first five questions together.
+100. Narration: Yohji’s pencil is already moving.
+101. Koshi: Uh… where do we start?
+102. Yohji: Here. The key is to rewrite it.
+103. Narration: He points, patient.
+104. Narration: For a second I feel that old countryside insecurity flare up.
+105. Koshi: (He thinks I’m dumb.)
+106. Koshi: Thanks. Seriously.
+107. CHOICE: How do you respond to his help?
+108. Option A (Gentle) [Warmth +1, Trust +1]: “I’m glad you’re my seatmate.”
+109. Option B (Jokey)  [Warmth +0]: “Wow, Tokyo brain is scary.”
+110. [If A]
+111. Koshi: I’m glad you’re my seatmate. I’d be lost without you.
+112. Yohji: ...Don’t say it like that.
+113. Koshi: Like what?
+114. Yohji: Like it’s… permanent.
+115. Narration: Strange choice of word. I don’t pry.
+116. [If B]
+117. Koshi: Wow, Tokyo brain is scary.
+118. Yohji: It’s not that. You just… didn’t read the question.
+119. Koshi: Hey! Fair.
+120. Narration: He almost smiles. Almost.
+121. [BG: Hallway - Late morning]
+122. Mizuki: How’s our new seatmate arrangement?
+123. Koshi: I think I’m annoying him.
+124. Mizuki: You’re loud. He’s quiet. That’s not the same as annoying.
+125. Koshi: Easy for you to say, Miss Perfect.
+126. Mizuki: I’m class leader, not a saint.
+127. [BG: School Pool Area - After school]
+128. [SFX: water echo]
+129. Narration: I cut through the pool building because it’s cooler there.
+130. Narration: Sunlight dances on tiles. Everything feels slower.
+131. Narration: Yohji is sitting on a bench, watching the empty lanes.
+132. Koshi: Oh. You come here too?
+133. Yohji: It’s quieter than the courtyard.
+134. Koshi: You really like quiet.
+135. Yohji: ...I like breathing.
+136. Narration: That line hits me softly. Like he’s tired of noise, not people.
+137. Koshi: Want a drink? I have… uh… melon soda.
+138. Yohji: ...Sure.
+139. Narration: He accepts. A small miracle.
+140. Yohji: Thank you.
+141. Koshi: Anytime.
+142. Narration: A keychain slips from his bag and clinks on the floor.
+143. Narration: He doesn’t notice.
+144. Narration: It’s a simple keychain—nothing dramatic. Just a small charm.
+145. Narration: I pick it up quietly.
+146. Koshi: Yohji, you dropped this.
+147. Yohji: ...Oh.
+148. Yohji: Thank you.
+149. Narration: His fingers hesitate before taking it—like he’s not used to being looked after.
+150. SECRET FLAG S1 (set if you returned it calmly): Returned the keychain without teasing.
+151. [BG: Street - Convenience store]
+152. [SFX: door chime]
+153. Narration: Mizuki “coincidentally” appears on our route home.
+154. Mizuki: Oh! You two too? What a surprise.
+155. Koshi: That’s the least convincing surprise I’ve ever heard.
+156. Yohji: ...
+157. Narration: Yohji watches us bicker like it’s a new species.
+158. Mizuki: We’re doing cultural festival prep on Thursday. Don’t vanish, okay?
+159. Koshi: Me? Vanish? Never.
+160. Narration: Yohji’s eyes flick to me, like he’s checking if that’s true.
+161. CHOICE: What do you do with your time tonight?
+162. Option A (Study) [Balance +1]: Go home early and actually study.
+163. Option B (Message Yohji) [Warmth +1]: Send a simple text: “Thanks for today.”
+164. Option C (Arcade solo) [Balance -1]: Escape into games.
+165. [If A]
+166. [BG: Koshi's Room - Night]
+167. Narration: I open my book. The pages look back at me like enemies.
+168. Koshi: (If I want trust… I should earn it.)
+169. [If B]
+170. [BG: Koshi's Room - Night]
+171. Narration: I type, delete, type again.
+172. Koshi: (Don’t be weird. Don’t be weird.)
+173. Koshi (text): Thanks for today. The pool was nice.
+174. Narration: Seen. No reply yet.
+175. [If C]
+176. [BG: Arcade - Night]
+177. [SFX: coin clinks]
+178. Narration: The lights are bright enough to hide my anxiety.
+179. Koshi: (Tomorrow. I’ll be better tomorrow.)
+180. [DAY 3 — WEDNESDAY]
+181. [BG: Classroom - Morning]
+182. [SFX: pages flipping]
+183. Narration: Yohji’s notebook is so organized it makes me feel like a liar.
+184. Koshi: Yohji, are you… always this neat?
+185. Yohji: It helps me think.
+186. Koshi: I wish chaos helped me think.
+187. Yohji: It helps you nap.
+188. Koshi: Hey—
+189. Narration: That’s a joke. It’s definitely a joke.
+190. Narration: My chest does something stupid over a joke.
+191. [BG: Classroom - Homeroom]
+192. Sakurai-sensei: Cultural festival is soon. Groups will plan activities.
+193. Sakurai-sensei: Koshi, Yohji, and Mizuki. You three handle decoration layout.
+194. Koshi: Decoration? I can do that!
+195. Mizuki: Great. Koshi, don’t disappear halfway.
+196. Koshi: I am reliable! (Occasionally.)
+197. Yohji: ...Let’s decide after class.
+198. [BG: Classroom - After class]
+199. Mizuki: We need posters, booth signs, and a schedule board.
+200. Koshi: I can design the posters. Like, actually.
+201. Yohji: You draw?
+202. Koshi: A bit. Enough to survive.
+203. Narration: Yohji looks at me like he’s updating a private file: Koshi, useful.
+204. Yohji: I can do the written parts.
+205. Mizuki: Look at you two, already functioning.
+206. Narration: Functioning. That’s… a start.
+207. CHOICE: After school, what do you suggest?
+208. Option A (Arcade together) [Warmth +1]: “Let’s take a break at the arcade.”
+209. Option B (Study corner)    [Balance +1]: “Library first, then we plan.”
+210. Option C (Go home)         [Balance +1, Warmth -1]: “Let’s just text details.”
+211. [If A]
+212. [BG: Arcade - Afternoon]
+213. [SFX: game jingles]
+214. Narration: Yohji stands at the entrance like it’s a foreign country.
+215. Koshi: It’s not scary. Just loud.
+216. Yohji: Loud is… manageable.
+217. Koshi: I’ll guide you, Tokyo prince.
+218. Yohji: Don’t call me that.
+219. Koshi: Why? Because you’re secretly a countryside peasant now?
+220. Yohji: ...Because you don’t know me.
+221. Narration: Not harsh. Just honest.
+222. Koshi: Then I’ll learn.
+223. Narration: We play a simple rhythm game.
+224. Koshi: Watch this—
+225. Narration: I miss the notes. Horribly.
+226. Yohji: ...You’re fearless.
+227. Koshi: That’s one word for it.
+228. Narration: Yohji tries. He’s good. Of course he is.
+229. Koshi: Show-off.
+230. Yohji: You asked me to play.
+231. Narration: He wins a small prize by accident. A keychain charm.
+232. Yohji: Here.
+233. Koshi: For me?
+234. Yohji: You… invited me. It’s fair.
+235. Narration: My face warms. Stupid, stupid face.
+236. [If B]
+237. [BG: Library - Afternoon]
+238. [SFX: quiet air]
+239. Narration: Yohji relaxes the second we step into the library.
+240. Koshi: You’re a library person, huh?
+241. Yohji: It’s predictable.
+242. Koshi: People aren’t predictable.
+243. Yohji: ...Exactly.
+244. Narration: We plan festival tasks. I try to look like I’m not suffering.
+245. Yohji: If you don’t understand, ask.
+246. Koshi: I’m asking with my eyes.
+247. Yohji: Your eyes are loud.
+248. Koshi: Rude!
+249. Narration: He smiles—small, real, gone in a second.
+250. [If C]
+251. [BG: Street - After school]
+252. Narration: We split at the gate.
+253. Koshi: I’ll message you later about the designs.
+254. Yohji: Okay.
+255. Narration: He walks away before the silence can get awkward.
+256. [BG: Rooftop - Sunset]
+257. Narration: I end up on the roof again. Of course I do.
+258. Narration: Yohji arrives a minute later, like this is becoming a habit.
+259. Koshi: So… rooftop club?
+260. Yohji: ...Maybe.
+261. Koshi: You know, everyone thinks you’re better than us.
+262. Yohji: I don’t.
+263. Koshi: Really?
+264. Yohji: They don’t know me either.
+265. Narration: The wind moves his hair. He looks younger for a second.
+266. Koshi: I want to know you.
+267. Yohji: Why?
+268. Narration: Simple question. Dangerous question.
+269. CHOICE: How do you answer “Why?”
+270. Option A (Honest gentle) [Warmth +1, Trust +1]: “Because I like being around you.”
+271. Option B (Casual)        [Warmth +0]: “Because you’re interesting.”
+272. Option C (Deflect)       [Warmth -1]: “Because seatmates have to.”
+273. [If A]
+274. Koshi: Because I like being around you. That’s all.
+275. Yohji: ...That’s not ‘all.’
+276. Narration: His voice is quieter than the sunset.
+277. [If B]
+278. Koshi: Because you’re interesting. And I’m bored easily.
+279. Yohji: ...You say things too easily.
+280. [If C]
+281. Koshi: Because seatmates have to. It’s the law.
+282. Yohji: ...There’s no such law.
+283. Narration: He looks away. I regret it immediately.
+284. [BG: Koshi's Room - Night]
+285. Narration: I place the arcade charm on my desk like it’s something precious.
+286. Narration: Tomorrow is festival prep day.
+287. Koshi: (Don’t mess up, Koshi.)
+288. [DAY 4 — THURSDAY]
+289. [BG: Classroom - Morning]
+290. [SFX: tape ripping]
+291. Narration: The classroom smells like markers and ambition.
+292. Mizuki: Okay, team. Posters here, schedule board there.
+293. Koshi: Leave the visuals to me.
+294. Yohji: I’ll write the headings. Neatly.
+295. Koshi: Your ‘neatly’ scares me.
+296. Yohji: Good.
+297. Narration: I draw bold shapes and silly mascots.
+298. Narration: Yohji’s lettering is clean and steady, like he doesn’t doubt himself.
+299. Koshi: How do you write so straight without lines?
+300. Yohji: Practice.
+301. Koshi: I practice avoiding practice.
+302. Yohji: ...I noticed.
+303. Narration: We work side by side. It feels… normal.
+304. Narration: Not forced. Not tense. Just two people sharing space.
+305. Sakurai-sensei: Good pace, you three. Keep it up.
+306. Mizuki: See? Koshi can be useful.
+307. Koshi: ‘Can be’?!
+308. Yohji: It’s accurate.
+309. Koshi: You too?!
+310. Narration: Yohji’s mouth twitches. That’s his version of laughter.
+311. [BG: Classroom - Midday]
+312. Narration: A roll of tape gets stuck to Yohji’s sleeve.
+313. Koshi: Hold still.
+314. Narration: I peel it off carefully, like it might hurt him.
+315. Yohji: ...Thanks.
+316. Koshi: Anytime.
+317. Narration: Our fingers almost touch. Almost.
+318. Narration: The room is loud, but that moment is quiet.
+319. CHOICE: Someone teases Yohji about being ‘Tokyo perfect.’ What do you do?
+320. Option A (Defend gently) [Trust +1, Warmth +1]: “He’s just Yohji. Chill.”
+321. Option B (Laugh along)   [Trust -1]: “Yeah, he’s too perfect.”
+322. [If A]
+323. Koshi: He’s just Yohji. Chill. We’re all doing our best.
+324. Student: Oookay, Koshi, relax.
+325. Narration: Yohji glances at me—quick, surprised.
+326. [If B]
+327. Koshi: Yeah, he’s too perfect. It’s annoying.
+328. Narration: Yohji’s expression doesn’t change, but something shuts.
+329. [BG: School Pool Area - Afternoon break]
+330. [SFX: distant splash]
+331. Narration: We take a short break near the pool building.
+332. Koshi: This place is like your secret base, huh?
+333. Yohji: It’s not secret.
+334. Koshi: It is if you only show it to me.
+335. Yohji: ...
+336. Narration: He looks at the water like it’s an answer.
+337. Yohji: You’re different from what I expected.
+338. Koshi: What did you expect?
+339. Yohji: Someone… trying to win.
+340. Koshi: Win what?
+341. Yohji: People.
+342. Narration: That stings because it’s not completely wrong.
+343. CHOICE: How do you respond?
+344. Option A (Sincere) [Trust +1]: “I’m not trying to win you. I’m trying to know you.”
+345. Option B (Defensive) [Warmth -1]: “You think I’m fake?”
+346. [If A]
+347. Koshi: I’m not trying to win you. I’m trying to know you.
+348. Yohji: ...That’s difficult.
+349. Koshi: I like difficult. Sometimes.
+350. [If B]
+351. Koshi: You think I’m fake?
+352. Yohji: I didn’t say that.
+353. Koshi: You implied it.
+354. Yohji: ...You jump to conclusions.
+355. Narration: Ouch. Accurate.
+356. [BG: Classroom - Final prep]
+357. Narration: We finish the boards. They look good. Like a real team made them.
+358. Mizuki: Nice. Yohji-kun, your writing is beautiful.
+359. Yohji: Thank you.
+360. Narration: He accepts praise without showing pride. Just… acknowledgment.
+361. Koshi: Hey, Yohji. Want to take a photo with the boards?
+362. Yohji: A photo?
+363. Koshi: For memories. For… proof we did work.
+364. Yohji: ...Okay.
+365. [SFX: camera click]
+366. Narration: He stands beside me in the frame.
+367. Narration: For one second, he doesn’t look like he’s ready to run.
+368. [BG: Rooftop - Sunset]
+369. Narration: The sky is softer today, like it learned our names.
+370. Koshi: Festival’s in two days.
+371. Yohji: ...You’ll come?
+372. Koshi: Of course.
+373. Yohji: Don’t say ‘of course’ so easily.
+374. Koshi: Then I’ll prove it.
+375. Narration: His eyes narrow, not angry—careful.
+376. Yohji: Prove it, then.
+377. [BG: Street - Evening]
+378. Narration: We walk partway home together.
+379. Koshi: So… do you like arcades now?
+380. Yohji: I tolerate them.
+381. Koshi: That’s basically love from you.
+382. Yohji: Don’t exaggerate.
+383. Narration: But his steps match mine.
+384. [BG: Koshi's Room - Night]
+385. Narration: I look at the photo again.
+386. Narration: It’s weird. One week. And he’s already part of my days.
+387. Koshi: (Please don’t break tomorrow.)
+388. [DAY 5 — FRIDAY]
+389. [BG: Classroom - Morning]
+390. [SFX: rain tapping windows]
+391. Narration: Rain makes the classroom quieter. Yohji seems calmer.
+392. Koshi: Weather suits you.
+393. Yohji: Is that an insult?
+394. Koshi: No! It’s… a compliment?
+395. Yohji: ...Then thank you.
+396. Narration: He says ‘thank you’ more often lately.
+397. Narration: That should make me happy.
+398. Narration: It does. So why do I feel nervous?
+399. [BG: Hallway - Lunch break]
+400. [SFX: footsteps]
+401. Narration: I go to refill my water bottle.
+402. Narration: Voices drift from around the corner—Yohji and Mizuki.
+403. Mizuki: Are you okay with Koshi? He can be… intense.
+404. Yohji: He’s… kind.
+405. Narration: I freeze. Kind.
+406. Yohji: But it’s easier if I don’t…
+407. Mizuki: Don’t what?
+408. Narration: A door opens. A laugh passes. The next words blur.
+409. Yohji (muffled): ...get attached.
+410. Narration: My brain grabs the worst possible meaning and runs with it.
+411. Narration: Attached. To me. He doesn’t want to be attached to me.
+412. Narration: The hallway suddenly feels too narrow.
+413. Koshi: (So… he was just being polite.)
+414. [BG: Classroom - Afternoon]
+415. Narration: I avoid looking at him.
+416. Narration: That’s my superpower: acting fine while panicking.
+417. Yohji: Koshi. Are you listening?
+418. Koshi: Yep. Listening. Totally.
+419. Narration: Yohji’s eyes linger like he can tell I’m lying.
+420. [BG: After school - Classroom emptying]
+421. Mizuki: Festival setup tomorrow. Meet at nine.
+422. Koshi: Sure.
+423. Narration: Yohji hesitates, like he wants to add something.
+424. Yohji: See you tomorrow.
+425. Koshi: ...Yeah.
+426. Narration: My voice sounds wrong even to me.
+427. [BG: Koshi's Room - Evening]
+428. [SFX: phone buzz, then silence]
+429. Narration: I stare at my phone. No messages. No proof. Just my thoughts.
+430. Narration: If I confront him, I look desperate.
+431. Narration: If I say nothing, I drown in guessing.
+432. CHOICE: What do you do tonight?
+433. Option A (Confront bluntly) [Warmth -1]: Call Yohji and ask directly.
+434. Option B (Withdraw)         [Trust -1]: Decide he doesn’t like you and pull away.
+435. Option C (Ask Mizuki)       [Balance +1, Trust +1]: Message Mizuki for context.
+436. [If A]
+437. Koshi: (Fine. I’ll be honest.)
+438. Koshi (call): Yohji. Do you… not want to be friends?
+439. Yohji (phone): ...What?
+440. Koshi: I heard you say it’s easier if you don’t get attached.
+441. Yohji: ...You heard that?
+442. Narration: Silence. The worst kind.
+443. Yohji: I didn’t mean—
+444. Koshi: Forget it. It’s fine.
+445. Yohji: Koshi, wait—
+446. Narration: I hang up too fast. My hands are shaking.
+447. [If B]
+448. Narration: I don’t call. I don’t text. I don’t do anything.
+449. Narration: I build a wall out of ‘fine.’
+450. Koshi: (Tomorrow I’ll act normal. Normal strangers.)
+451. [If C]
+452. Koshi (text): Mizuki. Earlier… I overheard something. Did Yohji say he doesn’t want me around?
+453. Mizuki (text): Huh? No. Wait—what exactly did you hear?
+454. Koshi (text): “Easier if I don’t get attached.”
+455. Mizuki (text): Koshi, that’s not about you being annoying. Please don’t assume.
+456. Narration: My chest loosens by half a breath.
+457. Mizuki (text): Talk tomorrow. In person. Don’t run.
+458. Koshi: (Don’t run… right. Sure.)
+459. [BG: Rooftop - Night] (Optional scene if you withdraw)
+460. Narration: I end up on the roof anyway. Rain has stopped. The sky is heavy.
+461. Narration: The place that felt quiet now feels empty.
+462. Koshi: (I’m such an idiot.)
+463. [DAY 6 — SATURDAY]
+464. [BG: School Gate - Morning]
+465. [SFX: festival crowd building]
+466. Narration: Cultural festival day. Lanterns, music, fried noodles—everything louder than my thoughts.
+467. Narration: Yohji stands by our classroom booth, holding flyers like a shield.
+468. Koshi: Yohji!
+469. Yohji: ...You came.
+470. Koshi: I said I would.
+471. Mizuki: Booth opens soon. Move, you two!
+472. SECRET FLAG S3 (set if Balance is high): You showed up on time with supplies and didn’t vanish.
+473. [BG: Classroom Booth - Prep]
+474. [SFX: tape ripping]
+475. Narration: We set up the boards we made together. Yohji aligns everything. I try to keep up.
+476. Yohji: Schedule board here.
+477. Koshi: Got it. No ‘probably.’
+478. CHOICE: Yohji keeps glancing at you. What do you do?
+479. Option A (Gentle) [Warmth +1]: “Are we okay?”
+480. Option B (Later)  [Balance +1]: “After the rush, we talk.”
+481. Option C (Avoid)  [Trust -1]: Stay busy and keep distance.
+482. Narration: The booth rush comes and goes. The noise fades. The tension doesn’t.
+483. [BG: Courtyard - Afternoon]
+484. Narration: I step out for air. Yohji follows—quiet footsteps behind loud feelings.
+485. Yohji: Koshi. What happened yesterday?
+486. Koshi: I heard you say it’s easier if you don’t get attached.
+487. Yohji: ...You heard that?
+488. Koshi: Was I wrong?
+489. Yohji: You were… incomplete.
+490. Yohji: It’s easier if I don’t get attached—because I get scared when things start feeling real.
+491. Narration: Mizuki arrives, breathless, like she sprinted here on purpose.
+492. Mizuki: Koshi, you misheard the meaning, not the words.
+493. Mizuki: Yohji’s not rejecting you. He’s guarding himself.
+494. Narration: My anger crumples into embarrassment, then guilt.
+495. Koshi: Yohji…
+496. Yohji: Please.
+497. Narration: His eyes shine. He tries to hold it back. Fails.
+498. Yohji: Don’t leave this friendship.
+499. Narration: Tears slip down his face—silent, honest, and impossible to ignore.
+500. CHOICE: How do you respond to Yohji crying?
+501. Option A (Gentle promise) [Trust +2, Warmth +1]: “I’m here. I’m not going anywhere.”
+502. Option B (Apology)        [Trust +1]: “I panicked. I’m sorry.”
+503. Option C (Defensive)      [Warmth -1]: “You scared me, okay?”
+504. Narration: Mizuki steps away, giving us space without making it awkward.
+505. [BG: Rooftop - Sunset]
+506. Narration: We climb to the roof. Orange sky. Cool wind. Two people trying again.
+507. Yohji: I’m bad at trust.
+508. Koshi: I’m bad at patience.
+509. Koshi: So we’ll build it anyway. One day at a time.
+510. Yohji: ...No big promises.
+511. Koshi: Fine. Just honest warnings.
+512. Yohji: And you… don’t assume the worst.
+513. Koshi: Deal.
+514. CHOICE: Right now—follow him, or give him space?
+515. Option A (Follow / push) [Trust -1]: Sit too close and demand certainty.
+516. Option B (Give space)    [Trust +1] (SECRET FLAG S2): Sit beside him, leave a small gap.
+517. Narration: The sun sinks. The silence becomes softer, not sharp.
+518. [BG: Booth - Evening]
+519. [SFX: closing announcements]
+520. Narration: We finish the festival shift together—tired, but not broken.
+521. Yohji: Koshi.
+522. Koshi: Yeah?
+523. Yohji: ...Thank you for coming back.
+524. Narration: This time, I just nod. Proof over words.
+525. [DAY 7 — SUNDAY]
+526. [BG: School Pool Area - Morning]
+527. Narration: Cleanup day. The school is quiet again, like it exhaled after the festival.
+528. Narration: Yohji stands by the pool tiles, sleeves rolled up, pretending he isn’t tired.
+529. Koshi: Morning. Still alive?
+530. Yohji: Barely.
+531. Narration: That’s his version of joking now.
+532. Koshi: No promises.
+533. Yohji: ...Small promises only.
+534. Narration: We work in sync—no big talk, just shared motion.
+535. [BG: Koshi's Room - Afternoon]
+536. Narration: After, I sit at my desk and stare at the tiny arcade charm.
+537. Narration: Trust isn’t a feeling. It’s a habit you choose again and again.
+538. CHOICE: Where do you invite Yohji to end the week?
+539. Option A (Rooftop) [Warmth +1]: “Rooftop, sunset. One last check-in.”
+540. Option B (Arcade)  [Warmth +1]: “Arcade rematch. No heavy talks.”
+541. [GOOD ENDING — Real Friends] (Trigger: Trust ≥4 and Warmth ≥4, Balance ≥3)
+542. [BG: Rooftop - Sunset]
+543. Narration: Yohji arrives without hesitation, like the roof remembers him now.
+544. Yohji: You wanted to talk?
+545. Koshi: Just… to end the week properly.
+546. Yohji: Then I’ll say it properly too.
+547. Yohji: I trust you more than I expected.
+548. Koshi: I’ll take that as a win.
+549. Yohji: Don’t turn it into a scoreboard.
+550. Koshi: Okay. Not a scoreboard. A… small collection of proof.
+551. Narration: Yohji’s mouth lifts—tiny, real.
+552. Yohji: Stay my friend, Koshi.
+553. Koshi: Yeah. I will.
+554. [END]
+555. [NEUTRAL ENDING — Friends, But Distant] (Trigger: Trust 3–4, mixed Warmth/Balance)
+556. [BG: School Gate - Evening]
+557. Narration: We meet after cleanup. No fight. No confession. Just quiet.
+558. Yohji: Thanks for this week.
+559. Koshi: That sounds like a goodbye.
+560. Yohji: Not a goodbye. Just… a pause.
+561. Koshi: I can handle pauses.
+562. Yohji: I’m still learning how to do this.
+563. Koshi: Friendship?
+564. Yohji: Trust.
+565. Koshi: Same thing, remember?
+566. Narration: He nods, but doesn’t step closer.
+567. Yohji: See you in class.
+568. Koshi: Yeah. Seatmates.
+569. Narration: We’re friends—just at arm’s length, for now.
+570. [END]
+571. [BAD ENDING — Drift Apart] (Trigger: Trust ≤2 OR repeated blunt/avoid choices)
+572. [BG: Classroom - Monday After]
+573. Narration: The week ends, but the distance stays.
+574. Narration: Yohji answers politely. I answer casually. We stop trying.
+575. Koshi: Morning.
+576. Yohji: Good morning.
+577. Narration: Two words. Clean. Safe. Empty.
+578. Mizuki: You two okay?
+579. Koshi: Yeah. We’re fine.
+580. Narration: ‘Fine’ becomes a wall we never climb.
+581. Narration: The rooftop stays quiet without us.
+582. Narration: The arcade charm gathers dust on my desk.
+583. Narration: Maybe friendship needs courage I didn’t choose.
+584. Narration: And maybe I’ll regret that for a while.
+585. [END]
+586. [SECRET ENDING — One Week Becomes a Habit] (Trigger: Trust=5, Warmth=5, Balance ≥4 + S1+S2+S3)
+587. [BG: Arcade - Night]
+588. Narration: The arcade lights reflect in Yohji’s eyes. He looks less afraid of being seen.
+589. Yohji: You kept showing up.
+590. Koshi: I said I would.
+591. Yohji: You didn’t make it a performance either.
+592. Narration: I think of the keychain I returned quietly. The space I gave him. The times I chose reliability.
+593. Yohji: I… want this to be a normal thing.
+594. Koshi: Us hanging out?
+595. Yohji: You waiting for me. Me trusting you.
+596. Koshi: Then let’s make it a habit.
+597. Narration: Yohji hesitates—then steps closer, just one small step.
+598. Yohji: When you smile at me like that… it’s hard not to stay.
+599. Narration: My face warms. I don’t tease him. I don’t chase. I just stay.
+600. [END]`;
+
+    // ===== VN STATE =====
+    const state = {
+      trust: 0, warmth: 0, balance: 0,
+      flags: { S1:false, S2:false, S3:false },
+      invite: null,
+      auto: false, skip: false,
+      typing: true,
+      lastLine: null,
+      log: []
+    };
+    const MAX_STAT = 5;
+
+    const el = {
+      bg: document.getElementById('bg'),
+      locText: document.getElementById('locText'),
+      speaker: document.getElementById('speaker'),
+      text: document.getElementById('text'),
+      choices: document.getElementById('choices'),
+      sfxLabel: document.getElementById('sfxLabel'),
+      hint: document.getElementById('hint'),
+      trustFill: document.getElementById('trustFill'),
+      warmthFill: document.getElementById('warmthFill'),
+      balanceFill: document.getElementById('balanceFill'),
+      tap: document.getElementById('tapCatcher'),
+      btnAuto: document.getElementById('btnAuto'),
+      btnSkip: document.getElementById('btnSkip'),
+      btnLog: document.getElementById('btnLog'),
+      btnSave: document.getElementById('btnSave'),
+      btnLoad: document.getElementById('btnLoad'),
+      btnRestart: document.getElementById('btnRestart'),
+      logPanel: document.getElementById('logPanel'),
+      logBody: document.getElementById('logBody'),
+      btnCloseLog: document.getElementById('btnCloseLog'),
+    };
+
+    function clamp(n){ return Math.max(0, Math.min(MAX_STAT, n)); }
+    function setStat(key, delta){ state[key] = clamp(state[key] + delta); renderStats(); }
+    function renderStats(){
+      el.trustFill.style.width = (state.trust / MAX_STAT * 100) + '%';
+      el.warmthFill.style.width = (state.warmth / MAX_STAT * 100) + '%';
+      el.balanceFill.style.width = (state.balance / MAX_STAT * 100) + '%';
+    }
+
+    function canonicalBg(label){
+      const l = (label||'').toLowerCase();
+      if (l.includes('classroom')) return 'classroom';
+      if (l.includes('rooftop')) return 'rooftop';
+      if (l.includes('arcade')) return 'arcade';
+      if (l.includes('street') || l.includes('gate')) return 'street';
+      if (l.includes('pool')) return 'pool';
+      if (l.includes('hallway')) return 'hallway';
+      if (l.includes('courtyard')) return 'courtyard';
+      if (l.includes('library')) return 'library';
+      if (l.includes("koshi's room")) return 'room';
+      if (l.includes('booth')) return 'booth';
+      return 'default';
+    }
+    function bgStyle(key){
+      switch(key){
+        case 'classroom': return 'radial-gradient(ellipse 100% 65% at 30% 0%,  #ffe8f0 0%, transparent 55%), radial-gradient(ellipse 70% 80% at 85% 90%, #dce8ff, transparent 60%), linear-gradient(160deg, #fff0f8 0%, #f0e8ff 45%, #e8f0ff 100%)';
+        case 'rooftop':   return 'radial-gradient(ellipse 90% 60% at 55% 0%,   #ffe0b0 0%, transparent 55%), radial-gradient(ellipse 70% 70% at 20% 95%, #ffd0e8, transparent 58%), linear-gradient(180deg, #fff8e8 0%, #ffe8d0 40%, #ffcce0 100%)';
+        case 'arcade':    return 'radial-gradient(ellipse 80% 65% at 50% 15%,  #f0d8ff 0%, transparent 55%), radial-gradient(ellipse 60% 70% at 85% 75%, #d0d8ff, transparent 55%), linear-gradient(135deg, #f8e8ff 0%, #e8d8ff 45%, #d8e0ff 100%)';
+        case 'street':    return 'radial-gradient(ellipse 85% 55% at 20% 15%,  #d8f0ff 0%, transparent 55%), radial-gradient(ellipse 65% 65% at 80% 85%, #c8e8ff, transparent 55%), linear-gradient(160deg, #e8f6ff 0%, #d8eeff 50%, #cce6ff 100%)';
+        case 'pool':      return 'radial-gradient(ellipse 85% 55% at 30% 5%,   #c8f8f0 0%, transparent 55%), radial-gradient(ellipse 65% 70% at 75% 85%, #b8eeff, transparent 55%), linear-gradient(135deg, #e0fff8 0%, #c8f0ff 50%, #b8e8ff 100%)';
+        case 'hallway':   return 'radial-gradient(ellipse 80% 60% at 65% 10%,  #f8eeff 0%, transparent 55%), linear-gradient(160deg, #f4eeff 0%, #ece0ff 50%, #e4d8f8 100%)';
+        case 'courtyard': return 'radial-gradient(ellipse 85% 60% at 50% 5%,   #d8f8e0 0%, transparent 55%), radial-gradient(ellipse 60% 70% at 20% 90%, #c8f0d8, transparent 55%), linear-gradient(160deg, #eefff4 0%, #daf8e8 50%, #ccf0dc 100%)';
+        case 'library':   return 'radial-gradient(ellipse 75% 60% at 30% 10%,  #fff8d8 0%, transparent 55%), linear-gradient(160deg, #fffcec 0%, #fff4d8 50%, #ffecc8 100%)';
+        case 'room':      return 'radial-gradient(ellipse 75% 60% at 40% 15%,  #ffe8f4 0%, transparent 55%), radial-gradient(ellipse 55% 65% at 85% 85%, #ffd8ee, transparent 55%), linear-gradient(160deg, #fff4fa 0%, #ffe8f4 50%, #ffd8ee 100%)';
+        case 'booth':     return 'radial-gradient(ellipse 85% 55% at 55% 5%,   #fff0d8 0%, transparent 55%), radial-gradient(ellipse 65% 65% at 20% 90%, #ffe8c8, transparent 55%), linear-gradient(160deg, #fff8ec 0%, #fff0d8 50%, #ffe8c8 100%)';
+        default:          return 'radial-gradient(ellipse 80% 60% at 50% 15%, #fce8ff, transparent 55%), linear-gradient(160deg, #f8eeff, #efe8ff)';
+      }
+    }
+    function setBg(label){
+      const key = canonicalBg(label);
+      el.bg.style.background = bgStyle(key);
+      el.locText.textContent = label || '—';
+    }
+    function setSfx(text){
+      if (!text){ el.sfxLabel.style.display = 'none'; return; }
+      el.sfxLabel.style.display = 'inline-flex';
+      el.sfxLabel.textContent = 'SFX: ' + text;
+    }
+
+    function escapeHtml(str){
+      return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+        .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+    }
+    function pushLog(speaker, text){
+      if (!text) return;
+      state.log.push({speaker, text});
+      if (state.log.length > 160) state.log.shift();
+    }
+    function renderLog(){
+      el.logBody.innerHTML = '';
+      state.log.slice().reverse().forEach(item=>{
+        const div = document.createElement('div');
+        div.className = 'logLine';
+        div.innerHTML = (item.speaker ? `<span class="logSpeaker">${escapeHtml(item.speaker)}:</span>` : '') + escapeHtml(item.text);
+        el.logBody.appendChild(div);
+      });
+    }
+    function toggleLog(show){
+      const next = (show !== undefined) ? show : (el.logPanel.style.display !== 'block');
+      el.logPanel.style.display = next ? 'block' : 'none';
+      if (next) renderLog();
+    }
+
+    function stripNumPrefix(line){ return line.replace(/^\d+\.\s*/, '').trim(); }
+
+    function parseEffects(bracketText){
+      const eff = { trust:0, warmth:0, balance:0 };
+      const s = (bracketText||'').replace(/[^\w+\-, ]/g,'').trim();
+      if (!s) return eff;
+      s.split(',').map(x=>x.trim()).filter(Boolean).forEach(part=>{
+        const m = part.match(/^(Trust|Warmth|Balance)\s*([+-]\d+)/i);
+        if (!m) return;
+        const key = m[1].toLowerCase();
+        const val = parseInt(m[2], 10);
+        if (key === 'trust') eff.trust += val;
+        if (key === 'warmth') eff.warmth += val;
+        if (key === 'balance') eff.balance += val;
+      });
+      return eff;
+    }
+
+    function parseOption(line){
+      const m = line.match(/^Option\s+([A-Z])\s*\((.*?)\)\s*(\[[^\]]+\])?\s*(\([^)]+\))?\s*:\s*(.*)$/);
+      if (!m) return { key:'A', text: line, effects:{trust:0,warmth:0,balance:0}, flagsSet:[] };
+      const key = m[1];
+      const bracket = (m[3]||'').replace(/^\[|\]$/g,'');
+      const extra = m[4] || '';
+      const text = m[5] || '';
+      const effects = parseEffects(bracket);
+      const flagsSet = [];
+      if (extra.includes('SECRET FLAG S1')) flagsSet.push('S1');
+      if (extra.includes('SECRET FLAG S2')) flagsSet.push('S2');
+      if (extra.includes('SECRET FLAG S3')) flagsSet.push('S3');
+      return { key, text, effects, flagsSet };
+    }
+
+    function parseLine(line){
+      const m = line.match(/^([^:]{2,32}):\s*(.*)$/);
+      if (m) return { type:'line', speaker:m[1], text:m[2] };
+      return { type:'line', speaker:'', text:line };
+    }
+
+    function parseRaw(raw){
+      const rawLines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+      const lines = rawLines.map(stripNumPrefix);
+
+      const main = [];
+      const endings = { good:[], neutral:[], bad:[], secret:[] };
+      let mode = 'main';
+      function targetArr(){ return mode==='main' ? main : endings[mode]; }
+
+      let i = 0;
+      while(i < lines.length){
+        const line = lines[i];
+
+        if (line.startsWith('[GOOD ENDING')){ mode='good'; i++; continue; }
+        if (line.startsWith('[NEUTRAL ENDING')){ mode='neutral'; i++; continue; }
+        if (line.startsWith('[BAD ENDING')){ mode='bad'; i++; continue; }
+        if (line.startsWith('[SECRET ENDING')){ mode='secret'; i++; continue; }
+        if (line === '[END]'){ mode='main'; i++; continue; }
+
+        const out = targetArr();
+
+        if (line.startsWith('[DAY')){
+          out.push({type:'day', text: line.replace(/^\[|\]$/g,'')});
+          i++; continue;
+        }
+
+        const bgm = line.match(/^\[BG:\s*(.*?)\]/);
+        if (bgm){ out.push({type:'bg', label:bgm[1]}); i++; continue; }
+
+        const sfxm = line.match(/^\[SFX:\s*(.*?)\]/);
+        if (sfxm){ out.push({type:'sfx', text:sfxm[1]}); i++; continue; }
+
+        if (line.startsWith('SECRET FLAG')){ out.push({type:'flagcmd', raw:line}); i++; continue; }
+
+        if (line.startsWith('CHOICE:')){
+          const prompt = line.replace('CHOICE:','').trim();
+          i++;
+          const options = [];
+          while(i < lines.length && lines[i].startsWith('Option ')){
+            options.push(parseOption(lines[i]));
+            i++;
+          }
+
+          const branches = {};
+          if (i < lines.length && lines[i].startsWith('[If ')){
+            while(i < lines.length && lines[i].startsWith('[If ')){
+              const km = lines[i].match(/^\[If\s+([A-Z])\]/);
+              const key = km ? km[1] : 'A';
+              i++;
+              const bsteps = [];
+              while(i < lines.length){
+                const l2 = lines[i];
+                if (l2.startsWith('[If ')) break;
+                if (l2.startsWith('CHOICE:')) break;
+                if (l2.startsWith('[DAY')) break;
+                if (l2.startsWith('[BG:')) break;
+                if (l2.startsWith('[SFX:')) break;
+                if (l2.startsWith('[GOOD ENDING') || l2.startsWith('[NEUTRAL ENDING') || l2.startsWith('[BAD ENDING') || l2.startsWith('[SECRET ENDING') || l2 === '[END]') break;
+                if (l2.startsWith('Option ')) break;
+
+                if (l2.startsWith('SECRET FLAG')){ bsteps.push({type:'flagcmd', raw:l2}); i++; continue; }
+                bsteps.push(parseLine(l2));
+                i++;
+              }
+              branches[key] = bsteps;
+            }
+          }
+
+          out.push({type:'choice', prompt, options, branches});
+          continue;
+        }
+
+        out.push(parseLine(line));
+        i++;
+      }
+
+      main.push({type:'end_eval'});
+      return { main, endings };
+    }
+
+    const SCRIPT = parseRaw(RAW_SCRIPT);
+
+    let queue = SCRIPT.main.slice();
+    let typingTimer = null;
+    let autoTimer = null;
+
+    function stopTyping(){ if (typingTimer){ clearInterval(typingTimer); typingTimer = null; } }
+
+    function setDialogue(speaker, text){
+      el.speaker.textContent = (speaker && speaker.trim()) ? speaker.trim() : '—';
+
+      if (!state.typing){
+        el.text.textContent = text;
+        return;
+      }
+
+      stopTyping();
+      el.text.textContent = '';
+
+      let i = 0;
+      const speed = 18;
+      typingTimer = setInterval(()=>{
+        i++;
+        el.text.textContent = text.slice(0, i);
+        if (i >= text.length){
+          stopTyping();
+          if (state.auto) scheduleAuto();
+        }
+      }, speed);
+    }
+
+    function scheduleAuto(){
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(()=>{
+        if (!state.auto) return;
+        if (el.choices.style.display === 'flex') return;
+        if (typingTimer) return;
+        showNext();
+      }, 950);
+    }
+
+    function clearChoices(){
+      el.choices.innerHTML = '';
+      el.choices.style.display = 'none';
+      // Re-enable tap-to-continue when no choices are on screen
+      el.tap.style.pointerEvents = 'auto';
+      el.tap.style.cursor = 'pointer';
+      if (el.hint) el.hint.textContent = 'Click / Space';
+    }
+
+    function showChoices(step){
+      clearChoices();
+      el.choices.style.display = 'flex';
+      // Disable tap-to-continue overlay while choices are visible (so buttons can be clicked)
+      el.tap.style.pointerEvents = 'none';
+      el.tap.style.cursor = 'default';
+      if (el.hint) el.hint.textContent = 'Select a choice';
+
+      setDialogue('Choice', step.prompt);
+
+      step.options.forEach(opt=>{
+        const btn = document.createElement('button');
+        btn.className = 'choiceBtn';
+        btn.type = 'button';
+
+        const meta = [];
+        if (opt.effects.trust) meta.push(`Trust ${opt.effects.trust>0?'+':''}${opt.effects.trust}`);
+        if (opt.effects.warmth) meta.push(`Warmth ${opt.effects.warmth>0?'+':''}${opt.effects.warmth}`);
+        if (opt.effects.balance) meta.push(`Balance ${opt.effects.balance>0?'+':''}${opt.effects.balance}`);
+        if (opt.flagsSet.length) meta.push(opt.flagsSet.map(f=>'Flag '+f).join(', '));
+
+        btn.innerHTML = `<div>${escapeHtml(opt.text)}</div>${meta.length?`<div class="choiceMeta">${escapeHtml(meta.join(' · '))}</div>`:''}`;
+
+        btn.addEventListener('click', ()=>{
+          setStat('trust', opt.effects.trust || 0);
+          setStat('warmth', opt.effects.warmth || 0);
+          setStat('balance', opt.effects.balance || 0);
+          opt.flagsSet.forEach(f=>state.flags[f] = true);
+
+          if (/invite\s+yohji/i.test(step.prompt)){
+            if (/rooftop/i.test(opt.text)) state.invite = 'rooftop';
+            if (/arcade/i.test(opt.text)) state.invite = 'arcade';
+          }
+
+          clearChoices();
+
+          const branch = step.branches?.[opt.key];
+          if (branch && branch.length){
+            queue = branch.concat(queue);
+          }
+
+          showNext();
+        });
+
+        el.choices.appendChild(btn);
+      });
+    }
+
+    function applyFlagCmd(raw){
+      const m = raw.match(/SECRET FLAG\s+(S\d)/i);
+      if (!m) return;
+      const f = m[1].toUpperCase();
+      if (f === 'S3'){
+        if (state.balance >= 3) state.flags.S3 = true;
+      } else {
+        state.flags[f] = true;
+      }
+    }
+
+    function evaluateEnding(){
+      const t = state.trust, w = state.warmth, b = state.balance;
+      const s1 = state.flags.S1, s2 = state.flags.S2, s3 = state.flags.S3;
+
+      if (t === 5 && w === 5 && b >= 4 && s1 && s2 && s3 && state.invite === 'arcade') return 'secret';
+      if (t >= 4 && w >= 4 && b >= 3 && state.invite === 'rooftop') return 'good';
+      if (t >= 3 && t <= 4) return 'neutral';
+      return 'bad';
+    }
+
+    function showNext(){
+      // If a choice is on screen, you must pick it first.
+      if (el.choices.style.display === 'flex') return;
+
+      // If currently typing, finish instantly
+      if (typingTimer){
+        stopTyping();
+        if (state.lastLine) el.text.textContent = state.lastLine.text;
+        if (state.auto) scheduleAuto();
+        return;
+      }
+
+      // Skip fast-forward until next choice / ending
+      if (state.skip){
+        let safety = 0;
+        while(queue.length && safety++ < 2500){
+          const peek = queue[0];
+          if (peek.type === 'choice' || peek.type === 'end_eval') break;
+
+          queue.shift();
+
+          if (peek.type === 'bg') setBg(peek.label);
+          if (peek.type === 'sfx') setSfx(peek.text);
+          if (peek.type === 'flagcmd') applyFlagCmd(peek.raw);
+          if (peek.type === 'line'){
+            pushLog(peek.speaker === 'Narration' ? '' : peek.speaker, peek.text);
+            state.lastLine = { speaker: peek.speaker === 'Narration' ? '' : peek.speaker, text: peek.text };
+          }
+          if (peek.type === 'day'){
+            pushLog('', peek.text);
+            state.lastLine = { speaker:'', text: peek.text };
+          }
+        }
+      }
+
+      const step = queue.shift();
+      if (!step){
+        setDialogue('', 'The End.');
+        clearChoices();
+        setSfx('');
+        return;
+      }
+
+      if (step.type === 'bg'){ setBg(step.label); return showNext(); }
+      if (step.type === 'sfx'){ setSfx(step.text); return showNext(); }
+      if (step.type === 'flagcmd'){ applyFlagCmd(step.raw); return showNext(); }
+
+      if (step.type === 'day'){
+        state.lastLine = { speaker:'', text: step.text };
+        pushLog('', step.text);
+        setDialogue('', step.text);
+        if (state.auto) scheduleAuto();
+        return;
+      }
+
+      if (step.type === 'choice'){
+        showChoices(step);
+        return;
+      }
+
+      if (step.type === 'end_eval'){
+        const route = evaluateEnding();
+        queue = SCRIPT.endings[route].slice().concat([{type:'line', speaker:'', text:'[END]'}]);
+        state.lastLine = { speaker:'', text:`Route decided: ${route.toUpperCase()}` };
+        setDialogue('', state.lastLine.text + ' (click to continue)');
+        if (state.auto) scheduleAuto();
+        return;
+      }
+
+      // Normal line
+      const speaker = (step.speaker === 'Narration') ? '' : step.speaker;
+      state.lastLine = { speaker, text: step.text };
+      pushLog(speaker, step.text);
+      setDialogue(speaker, step.text);
+      if (state.auto) scheduleAuto();
+    }
+
+    function resetGame(){
+      state.trust = 0; state.warmth = 0; state.balance = 0;
+      state.flags = { S1:false, S2:false, S3:false };
+      state.invite = null;
+      state.auto = false; state.skip = false;
+      state.lastLine = null;
+      state.log = [];
+      el.btnAuto.setAttribute('aria-pressed','false');
+      el.btnSkip.setAttribute('aria-pressed','false');
+      setSfx('');
+      queue = SCRIPT.main.slice();
+      renderStats();
+      showNext();
+    }
+
+    // ===== CUSTOM MODAL SYSTEM =====
+    const SAVE_KEY = 'koshi_yohji_vn_save_v1';
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalIcon    = document.getElementById('modalIcon');
+    const modalTitleText = document.getElementById('modalTitleText');
+    const modalDesc    = document.getElementById('modalDesc');
+    const modalSlots   = document.getElementById('modalSlots');
+    const modalBtns    = document.getElementById('modalBtns');
+    const toastEl      = document.getElementById('toast');
+
+    function openModal(){ modalOverlay.classList.add('open'); }
+    function closeModal(){ modalOverlay.classList.remove('open'); }
+    modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) closeModal(); });
+
+    function showToast(msg, emoji='✨'){
+      toastEl.textContent = emoji + '  ' + msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(()=> toastEl.classList.remove('show'), 2200);
+    }
+
+    function formatDate(ts){
+      if(!ts) return 'Empty';
+      const d = new Date(ts);
+      return d.toLocaleDateString('en', {month:'short',day:'numeric'}) + ' · ' + d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+    }
+
+    function getSaves(){
+      try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); }
+      catch(e){ return {}; }
+    }
+
+    const slotEmojis = ['🌸','🌼','🍀'];
+    const slotNames  = ['Slot 1','Slot 2','Slot 3'];
+
+    function saveStateObject(){
+      return {
+        trust: state.trust, warmth: state.warmth, balance: state.balance,
+        flags: state.flags, invite: state.invite,
+        auto: state.auto, skip: state.skip,
+        log: state.log, queue: queue,
+        lastLine: state.lastLine,
+        sfx: el.sfxLabel.textContent || '',
+        loc: el.locText.textContent || ''
+      };
+    }
+
+    function loadStateObject(obj){
+      state.trust   = clamp(obj.trust||0);
+      state.warmth  = clamp(obj.warmth||0);
+      state.balance = clamp(obj.balance||0);
+      state.flags   = obj.flags || {S1:false,S2:false,S3:false};
+      state.invite  = obj.invite ?? null;
+      state.auto    = !!obj.auto;
+      state.skip    = !!obj.skip;
+      state.log     = Array.isArray(obj.log) ? obj.log : [];
+      queue         = Array.isArray(obj.queue) ? obj.queue : SCRIPT.main.slice();
+      state.lastLine = obj.lastLine || null;
+
+      el.btnAuto.setAttribute('aria-pressed', state.auto ? 'true' : 'false');
+      el.btnSkip.setAttribute('aria-pressed', state.skip ? 'true' : 'false');
+
+      renderStats();
+      setBg(obj.loc || '—');
+      setSfx((obj.sfx||'').replace(/^SFX:\s*/,''));
+      clearChoices();
+      stopTyping();
+
+      if(state.lastLine){
+        el.speaker.textContent = state.lastLine.speaker || '—';
+        el.text.textContent    = state.lastLine.text || '';
+      } else {
+        el.speaker.textContent = '—';
+        el.text.textContent    = '';
+      }
+      if(state.auto) scheduleAuto();
+    }
+
+    function promptSave(){
+      const saves = getSaves();
+      modalIcon.textContent      = '💾';
+      modalTitleText.textContent = 'Save Game';
+      modalDesc.textContent      = 'Choose a slot to save your story~';
+      modalBtns.innerHTML        = '';
+      modalSlots.innerHTML       = '';
+      [1,2,3].forEach((n,i)=>{
+        const btn = document.createElement('button');
+        btn.className = 'slotBtn';
+        const info = saves[n];
+        btn.innerHTML = `
+          <span class="slotIcon">${slotEmojis[i]}</span>
+          <span class="slotInfo">
+            <div class="slotName">${slotNames[i]}</div>
+            <div class="slotDate">${info ? formatDate(info.at) + ' — ' + (info.data.loc||'?') : 'Empty slot'}</div>
+          </span>`;
+        btn.addEventListener('click', ()=>{
+          const all = getSaves();
+          all[n] = { at: Date.now(), data: saveStateObject() };
+          localStorage.setItem(SAVE_KEY, JSON.stringify(all));
+          closeModal();
+          showToast(`Saved to ${slotNames[i]}!`, slotEmojis[i]);
+        });
+        modalSlots.appendChild(btn);
+      });
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'modalBtn cancel';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('click', closeModal);
+      modalBtns.appendChild(cancelBtn);
+      openModal();
+    }
+
+    function promptLoad(){
+      const saves = getSaves();
+      modalIcon.textContent      = '📂';
+      modalTitleText.textContent = 'Load Game';
+      modalDesc.textContent      = 'Pick a save to continue your story~';
+      modalBtns.innerHTML        = '';
+      modalSlots.innerHTML       = '';
+      [1,2,3].forEach((n,i)=>{
+        const btn = document.createElement('button');
+        btn.className = 'slotBtn';
+        const info = saves[n];
+        if(!info){ btn.style.opacity='.45'; btn.style.cursor='not-allowed'; }
+        btn.innerHTML = `
+          <span class="slotIcon">${slotEmojis[i]}</span>
+          <span class="slotInfo">
+            <div class="slotName">${slotNames[i]}</div>
+            <div class="slotDate">${info ? formatDate(info.at) + ' — ' + (info.data.loc||'?') : 'Empty'}</div>
+          </span>`;
+        if(info){
+          btn.addEventListener('click', ()=>{
+            loadStateObject(info.data);
+            closeModal();
+            showToast(`Loaded ${slotNames[i]}!`, slotEmojis[i]);
+          });
+        }
+        modalSlots.appendChild(btn);
+      });
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'modalBtn cancel';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('click', closeModal);
+      modalBtns.appendChild(cancelBtn);
+      openModal();
+    }
+
+    function promptRestart(){
+      modalIcon.textContent      = '🌱';
+      modalTitleText.textContent = 'Start Over?';
+      modalDesc.textContent      = 'This will restart from the very beginning. Your saves are kept safe~';
+      modalSlots.innerHTML       = '';
+      modalBtns.innerHTML        = '';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'modalBtn cancel';
+      cancelBtn.textContent = 'No, stay here';
+      cancelBtn.addEventListener('click', closeModal);
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'modalBtn danger';
+      confirmBtn.textContent = 'Yes, restart 🌱';
+      confirmBtn.addEventListener('click', ()=>{ closeModal(); resetGame(); showToast('Story restarted!','🌱'); });
+      modalBtns.appendChild(cancelBtn);
+      modalBtns.appendChild(confirmBtn);
+      openModal();
+    }
+
+    // ===== Controls =====
+    el.tap.addEventListener('click', showNext);
+    window.addEventListener('keydown', (e)=>{
+      const choicesOpen = (el.choices.style.display === 'flex');
+      if(e.key === ' ' || e.key === 'Enter'){
+        if(choicesOpen){ e.preventDefault(); return; }
+        e.preventDefault();
+        showNext();
+      }
+      if(e.key === 'Escape'){ closeModal(); toggleLog(false); }
+    });
+
+    el.btnAuto.addEventListener('click', ()=>{
+      state.auto = !state.auto;
+      el.btnAuto.setAttribute('aria-pressed', state.auto ? 'true' : 'false');
+      if(state.auto) scheduleAuto(); else clearTimeout(autoTimer);
+    });
+
+    el.btnSkip.addEventListener('click', ()=>{
+      state.skip = !state.skip;
+      el.btnSkip.setAttribute('aria-pressed', state.skip ? 'true' : 'false');
+      if(state.skip) showNext();
+    });
+
+    el.btnLog.addEventListener('click', ()=> toggleLog());
+    el.btnCloseLog.addEventListener('click', ()=> toggleLog(false));
+    el.btnSave.addEventListener('click', promptSave);
+    el.btnLoad.addEventListener('click', promptLoad);
+    el.btnRestart.addEventListener('click', promptRestart);
+
+    // ── Pastel floating petals & sparkles ──
+    (function spawnParticles(){
+      const container = document.getElementById('petals');
+      const petalColors  = ['#ffc8d8','#f8d0e8','#e8c8f8','#c8d8f8','#c8f0e0','#fff0b8','#ffd8b8'];
+      const sparkleColors= ['#f8c0d8','#e0c8f8','#c0e0f8','#b8f0d8','#fff4b0'];
+
+      for(let i=0;i<20;i++){
+        const p = document.createElement('div');
+        p.className = 'petal';
+        const sz = 5 + Math.random()*9;
+        p.style.cssText = `
+          width:${sz}px; height:${sz*1.4}px;
+          left:${Math.random()*108-4}%;
+          background:${petalColors[Math.floor(Math.random()*petalColors.length)]};
+          --drift:${(Math.random()-.5)*140}px;
+          --spin:${Math.random()*720-360}deg;
+          animation-duration:${14+Math.random()*22}s;
+          animation-delay:${Math.random()*20}s;
+          border-radius:${Math.random()>.5?'50% 10% 50% 10%':'10% 50% 10% 50%'};
+          opacity:0;
+        `;
+        container.appendChild(p);
+      }
+      for(let i=0;i<12;i++){
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.cssText = `
+          left:${Math.random()*96+2}%;
+          top:${Math.random()*70+5}%;
+          width:${3+Math.random()*5}px; height:${3+Math.random()*5}px;
+          background:${sparkleColors[Math.floor(Math.random()*sparkleColors.length)]};
+          animation-duration:${2+Math.random()*4}s;
+          animation-delay:${Math.random()*5}s;
+        `;
+        container.appendChild(s);
+      }
+    })();
+
+    // Boot
+    resetGame();
+  </script>
+</body>
+</html>
